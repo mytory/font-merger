@@ -3,10 +3,12 @@ import sys
 import os
 import argparse
 import tempfile
+import re
 from fontTools.merge import Merger
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.scaleUpem import scale_upem
 from fontTools.varLib.instancer import instantiateVariableFont
+from fontTools.pens.boundsPen import BoundsPen
 
 def get_font_family_name(font_path):
     """폰트 파일에서 Family Name을 추출합니다."""
@@ -50,6 +52,32 @@ def format_weight_label(weight_value):
     return f"{weight_value}".rstrip("0").rstrip(".")
 
 
+def split_scale_args(argv):
+    """Parse --scale-fontN options from argv and return (clean_argv, scale_map)."""
+    clean = []
+    scale_map = {}
+    i = 0
+    while i < len(argv):
+        token = argv[i]
+        match_eq = re.match(r"^--scale-font(\d+)=(.+)$", token)
+        match_sep = re.match(r"^--scale-font(\d+)$", token)
+        if match_eq:
+            font_index = int(match_eq.group(1))
+            scale_map[font_index] = float(match_eq.group(2))
+            i += 1
+            continue
+        if match_sep:
+            font_index = int(match_sep.group(1))
+            if i + 1 >= len(argv):
+                raise ValueError(f"Missing value for {token}")
+            scale_map[font_index] = float(argv[i + 1])
+            i += 2
+            continue
+        clean.append(token)
+        i += 1
+    return clean, scale_map
+
+
 def get_wght_axis(font):
     if "fvar" not in font:
         return None
@@ -57,6 +85,60 @@ def get_wght_axis(font):
         if axis.axisTag == "wght":
             return axis
     return None
+
+
+def glyph_height(font, codepoint):
+    cmap = font.getBestCmap() or {}
+    glyph_name = cmap.get(codepoint)
+    if glyph_name is None:
+        return None
+    glyph_set = font.getGlyphSet()
+    pen = BoundsPen(glyph_set)
+    glyph_set[glyph_name].draw(pen)
+    if pen.bounds is None:
+        return None
+    _, y_min, _, y_max = pen.bounds
+    height = y_max - y_min
+    if height <= 0:
+        return None
+    return height
+
+
+def estimate_auto_scale(base_font_path, target_font_path):
+    """Estimate scale ratio using shared representative glyph heights."""
+    # Priority: Latin caps/x-height, then Hangul, then digits.
+    candidates = [ord("H"), ord("x"), ord("A"), ord("a"), ord("가"), ord("한"), ord("0")]
+    base = TTFont(base_font_path)
+    target = TTFont(target_font_path)
+    try:
+        for cp in candidates:
+            base_h = glyph_height(base, cp)
+            target_h = glyph_height(target, cp)
+            if base_h and target_h:
+                return base_h / target_h, chr(cp)
+    finally:
+        base.close()
+        target.close()
+    return 1.0, None
+
+
+def apply_visual_scale(font_path, index, temp_dir, scale_factor):
+    if abs(scale_factor - 1.0) < 1e-6:
+        return font_path
+    font = TTFont(font_path)
+    try:
+        current_upem = font["head"].unitsPerEm
+        scaled_upem = max(16, min(16384, int(round(current_upem * scale_factor))))
+        if scaled_upem != current_upem:
+            scale_upem(font, scaled_upem)
+            # Keep the same UPEM so visual size is actually changed for merge.
+            font["head"].unitsPerEm = current_upem
+        ext = os.path.splitext(font_path)[1] or ".ttf"
+        output_path = os.path.join(temp_dir, f"scaled_{index}{ext}")
+        font.save(output_path)
+        return output_path
+    finally:
+        font.close()
 
 
 def prepare_font_for_merge(font_path, index, temp_dir, target_upem, weight_value):
@@ -100,12 +182,19 @@ def prepare_font_for_merge(font_path, index, temp_dir, target_upem, weight_value
             work_font.close()
 
 def main():
+    try:
+        argv, scale_overrides = split_scale_args(sys.argv[1:])
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
     parser = argparse.ArgumentParser(description='Merge multiple fonts. Earlier fonts have higher priority.')
     parser.add_argument('--name', help='New font name')
     parser.add_argument('--weight', type=float, help="Weight value for variable fonts (wght axis)")
+    parser.add_argument('--auto-scale', action='store_true', help='Auto-scale non-first fonts to match first font size')
     parser.add_argument('fonts', nargs='+', help='Font files to merge (priority: first > last)')
     
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     
     if not args.fonts:
         print("Error: No font files provided.")
@@ -125,10 +214,21 @@ def main():
         print("Error: --weight is required when input includes variable fonts.")
         sys.exit(1)
 
-    # 이름 설정 로직
+    for font_idx, scale_value in scale_overrides.items():
+        if font_idx < 1 or font_idx > len(args.fonts):
+            print(f"Error: --scale-font{font_idx} is out of range (fonts count: {len(args.fonts)}).")
+            sys.exit(1)
+        if font_idx == 1:
+            print("Error: --scale-font1 is not allowed. The first font is the reference font.")
+            sys.exit(1)
+        if scale_value <= 0:
+            print(f"Error: --scale-font{font_idx} must be > 0.")
+            sys.exit(1)
+
+    # 이름 설정 로직 (첫 번째 폰트 기준)
     if not args.name:
-        last_font_path = args.fonts[-1]
-        base_name = get_font_family_name(last_font_path)
+        first_font_path = args.fonts[0]
+        base_name = get_font_family_name(first_font_path)
         args.name = f"Multilingual font based on {base_name}"
 
     if has_variable_font:
@@ -136,9 +236,14 @@ def main():
         args.name = f"{args.name} W{weight_label}"
     
     print(f"[*] Target Font Name: {args.name}")
-    print(f"[*] Priority Order: {' > '.join(args.fonts)}")
+    print(f"[*] Reference Font (font1): {args.fonts[0]}")
+    print(f"[*] Overwrite Priority: {' > '.join(args.fonts)}")
     if has_variable_font:
         print(f"[*] Variable font weight: {args.weight}")
+    if scale_overrides:
+        print(f"[*] Manual scales: {scale_overrides}")
+    if args.auto_scale:
+        print("[*] Auto scale: enabled")
 
     # Merger 초기화 및 실행
     # fontTools.merge.Merger는 리스트의 앞에 있는 폰트를 우선시합니다.
@@ -157,6 +262,25 @@ def main():
                 prepare_font_for_merge(path, i, temp_dir, target_upem, args.weight)
                 for i, path in enumerate(args.fonts)
             ]
+
+            base_font_path = prepared_fonts[0]
+            for i in range(1, len(prepared_fonts)):
+                manual_scale = scale_overrides.get(i + 1)
+                auto_scale = 1.0
+                char_used = None
+                if manual_scale is None and args.auto_scale:
+                    auto_scale, char_used = estimate_auto_scale(base_font_path, prepared_fonts[i])
+                    # Keep auto-scale in a conservative range.
+                    auto_scale = max(0.5, min(2.0, auto_scale))
+
+                scale_factor = manual_scale if manual_scale is not None else auto_scale
+                if manual_scale is not None or args.auto_scale:
+                    label = f"manual({manual_scale})" if manual_scale is not None else f"auto({auto_scale:.4f})"
+                    if char_used:
+                        label += f" via '{char_used}'"
+                    print(f"[*] Scale font{i+1}: {label}")
+                prepared_fonts[i] = apply_visual_scale(prepared_fonts[i], i, temp_dir, scale_factor)
+
             merged_font = merger.merge(prepared_fonts)
         
         # 이름 업데이트
