@@ -1,0 +1,13 @@
+#!/bin/bash
+# font-merger
+
+# 스크립트 위치 파악
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# 가상 환경 활성화 확인 및 실행
+if [ ! -d "$DIR/venv" ]; then
+    echo "Error: Virtual environment not found. Please run ./setup.sh first."
+    exit 1
+fi
+
+"$DIR/venv/bin/python3" "$DIR/_font_merger.py" "$@"
