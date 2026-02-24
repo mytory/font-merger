@@ -4,6 +4,7 @@ import os
 import argparse
 import tempfile
 import re
+from datetime import datetime, UTC
 from fontTools.merge import Merger
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.scaleUpem import scale_upem
@@ -32,21 +33,32 @@ def update_font_names(font, new_name):
     """병합된 폰트의 name 테이블을 새로운 이름으로 업데이트합니다."""
     # nameID 1: Family Name
     # nameID 2: Subfamily Name
+    # nameID 3: Unique Font Identifier
     # nameID 4: Full Name
+    # nameID 5: Version String
     # nameID 6: PostScript Name
     # nameID 16: Typographic Family Name
     # nameID 17: Typographic Subfamily Name
+    # nameID 21/22: WWS Family/Subfamily Name
+    # nameID 25: Variations PostScript Name Prefix
     family_name = new_name
     subfamily_name = "Regular"
     full_name = new_name
     ps_name = new_name.replace(" ", "-")
+    version = "Version 1.000"
+    unique_id = f"font-merger;{datetime.now(UTC).strftime('%Y%m%d%H%M%S')};{ps_name}"
     name_values = {
         1: family_name,
         2: subfamily_name,
+        3: unique_id,
         4: full_name,
+        5: version,
         6: ps_name,
         16: family_name,
         17: subfamily_name,
+        21: family_name,
+        22: subfamily_name,
+        25: ps_name,
     }
 
     # Update existing records first (all languages/platforms)
@@ -59,9 +71,10 @@ def update_font_names(font, new_name):
                 # Fallback for unusual encodings
                 record.string = value.encode("utf-16-be")
 
-    # Ensure required records exist for common platforms
+    # Ensure required records exist for common platforms/locales
     for name_id, value in name_values.items():
         font["name"].setName(value, name_id, 3, 1, 0x409)  # Windows, Unicode, en-US
+        font["name"].setName(value, name_id, 3, 1, 0x412)  # Windows, Unicode, ko-KR
         font["name"].setName(value, name_id, 1, 0, 0)      # Mac Roman, English
 
 
