@@ -220,7 +220,18 @@ def main():
         print(f"Error: {e}")
         sys.exit(1)
 
-    parser = argparse.ArgumentParser(description='Merge multiple fonts. Earlier fonts have higher priority.')
+    parser = argparse.ArgumentParser(
+        description='Merge multiple fonts. Earlier fonts have higher priority.',
+        epilog=(
+            "manual scale options:\n"
+            "  --scale-fontN=RATIO   Set manual visual scale for Nth input font (N starts at 1)\n"
+            "  --scale-fontN RATIO   Same as above\n"
+            "examples:\n"
+            "  --scale-font2=0.93\n"
+            "  --scale-font3 1.05"
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
     parser.add_argument('--name', help='New font name')
     parser.add_argument('--weight', type=float, help="Weight value for variable fonts (wght axis)")
     parser.add_argument('--auto-scale', action='store_true', help='Auto-scale non-first fonts to match first font size')
