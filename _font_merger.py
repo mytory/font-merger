@@ -31,19 +31,38 @@ def get_font_family_name(font_path):
 def update_font_names(font, new_name):
     """병합된 폰트의 name 테이블을 새로운 이름으로 업데이트합니다."""
     # nameID 1: Family Name
+    # nameID 2: Subfamily Name
     # nameID 4: Full Name
     # nameID 6: PostScript Name
+    # nameID 16: Typographic Family Name
+    # nameID 17: Typographic Subfamily Name
     family_name = new_name
+    subfamily_name = "Regular"
     full_name = new_name
     ps_name = new_name.replace(" ", "-")
+    name_values = {
+        1: family_name,
+        2: subfamily_name,
+        4: full_name,
+        6: ps_name,
+        16: family_name,
+        17: subfamily_name,
+    }
 
-    for record in font['name'].names:
-        if record.nameID == 1:
-            record.string = family_name.encode(record.getEncoding())
-        elif record.nameID == 4:
-            record.string = full_name.encode(record.getEncoding())
-        elif record.nameID == 6:
-            record.string = ps_name.encode(record.getEncoding())
+    # Update existing records first (all languages/platforms)
+    for record in font["name"].names:
+        if record.nameID in name_values:
+            value = name_values[record.nameID]
+            try:
+                record.string = value.encode(record.getEncoding(), errors="replace")
+            except Exception:
+                # Fallback for unusual encodings
+                record.string = value.encode("utf-16-be")
+
+    # Ensure required records exist for common platforms
+    for name_id, value in name_values.items():
+        font["name"].setName(value, name_id, 3, 1, 0x409)  # Windows, Unicode, en-US
+        font["name"].setName(value, name_id, 1, 0, 0)      # Mac Roman, English
 
 
 def format_weight_label(weight_value):
@@ -229,7 +248,7 @@ def main():
     if not args.name:
         first_font_path = args.fonts[0]
         base_name = get_font_family_name(first_font_path)
-        args.name = f"Multilingual font based on {base_name}"
+        args.name = f"{base_name} Centered Merged Font"
 
     if has_variable_font:
         weight_label = format_weight_label(args.weight)
