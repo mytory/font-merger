@@ -36,14 +36,28 @@
 ./font-merger --name="New Font Name" --weight=400 font1.ttf font2.ttf
 ```
 
+글자 크기 보정을 위한 옵션:
+
+```bash
+# 자동 보정
+./font-merger --weight=400 --auto-scale font1.ttf font2.ttf
+
+# 수동 보정 (2번째 폰트 크기 93%)
+./font-merger --weight=400 --scale-font2=0.93 font1.ttf font2.ttf
+```
+
 ## 동작 규칙
 
 - 우선순위: 앞에 입력한 폰트가 우선입니다.
 - 즉, 글리프가 겹치면 `font1 > font2 > font3` 순으로 유지됩니다.
 - 가변 폰트가 포함되면 `--weight` 값으로 `wght` 축을 고정한 뒤 병합합니다.
 - 가변 폰트가 포함되면 생성 폰트 이름 뒤에 `W{weight}`가 자동으로 붙습니다.
-- `--name`을 생략하면 마지막 폰트를 기준으로 자동 이름을 만듭니다.
-  - 형식: `Multilingual font based on {last-font-name}`
+- `--auto-scale`을 사용하면 첫 번째 폰트를 기준으로 뒤 폰트의 시각적 크기를 자동 보정합니다.
+- `--scale-fontN=<배율>`로 특정 입력 폰트 크기를 수동 보정할 수 있습니다. (`N`은 1부터 시작)
+- `--scale-font1`은 허용되지 않습니다. 첫 번째 폰트는 기준 폰트입니다.
+- `--auto-scale`과 `--scale-fontN`을 함께 쓰면 수동 보정값이 우선합니다.
+- `--name`을 생략하면 첫 번째 폰트를 기준으로 자동 이름을 만듭니다.
+  - 형식: `Multilingual font based on {first-font-name}`
 - 출력 파일명은 `{폰트이름(공백은 _로 변경)} + {첫 번째 폰트의 확장자}` 입니다.
 
 ## 예시
