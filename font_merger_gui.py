@@ -354,6 +354,7 @@ class MainWindow(QMainWindow):
         self.weight_label.setVisible(variable)
         self.weight_input.setVisible(variable)
         self.batch_button.setVisible(variable)
+        self.merge_button.setText("지정한 두께만 합치기" if variable else "폰트 합치기")
         self.update_name_placeholder()
         self.rebuild_manual_scale_inputs()
 
