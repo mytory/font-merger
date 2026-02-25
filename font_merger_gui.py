@@ -165,7 +165,8 @@ class MainWindow(QMainWindow):
         self.weight_input.setRange(1, 2000)
         self.weight_input.setValue(400)
         self.weight_input.setDecimals(1)
-        options_form.addRow("두께(가변 폰트)", self.weight_input)
+        self.weight_label = QLabel("두께(가변 폰트)")
+        options_form.addRow(self.weight_label, self.weight_input)
 
         self.auto_scale = QCheckBox("자동 크기 맞춤 사용 (권장)")
         self.auto_scale.setChecked(True)
@@ -300,6 +301,7 @@ class MainWindow(QMainWindow):
     def update_variable_ui(self):
         variable = self.has_variable_fonts()
         self.variable_badge.setText(f"가변 폰트 감지: {'예' if variable else '아니오'}")
+        self.weight_label.setVisible(variable)
         self.weight_input.setVisible(variable)
         self.batch_button.setVisible(variable)
         self.rebuild_manual_scale_inputs()
