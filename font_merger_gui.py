@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
         self.variable_badge = QLabel("가변 폰트 감지: 아니오")
         self.batch_button = QPushButton("100~900 일괄 생성")
         self.batch_button.setVisible(False)
-        self.merge_button = QPushButton("한 번 병합")
+        self.merge_button = QPushButton("폰트 합치기")
         action_row.addWidget(self.variable_badge)
         action_row.addStretch(1)
         action_row.addWidget(self.batch_button)
