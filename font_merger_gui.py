@@ -185,6 +185,7 @@ class MainWindow(QMainWindow):
             "자동 크기 맞춤은 1번 폰트를 기준으로 나머지 폰트를 맞춥니다.\n"
             "아래에서 폰트별 수동 %를 지정하면, 해당 폰트는 수동값이 우선 적용됩니다."
         )
+        self.scale_help.setObjectName("helpText")
         self.scale_help.setWordWrap(True)
         self.scale_help.setMinimumHeight(72)
         options_outer.addWidget(self.scale_help)
@@ -200,6 +201,7 @@ class MainWindow(QMainWindow):
             "합치는 폰트의 글자 크기가 '자동 크기 맞춤 사용'에도 불구하고 "
             "서로 많이 다를 때 직접 조정하기 위해 사용합니다."
         )
+        manual_intro.setObjectName("helpText")
         manual_intro.setWordWrap(True)
         manual_outer.addWidget(manual_intro)
 
@@ -215,6 +217,7 @@ class MainWindow(QMainWindow):
             "적용 규칙: 자동 크기 맞춤은 2번 이후 모든 폰트에 적용됩니다. "
             "단, 특정 폰트에 수동 %를 지정하면 그 폰트는 수동값이 우선합니다."
         )
+        self.auto_manual_hint.setObjectName("helpText")
         self.auto_manual_hint.setWordWrap(True)
         layout.addWidget(self.auto_manual_hint)
 
@@ -250,6 +253,9 @@ class MainWindow(QMainWindow):
                 font-weight: 700;
                 margin-top: 12px;
                 margin-bottom: 2px;
+            }
+            QLabel#helpText {
+                color: #777777;
             }
             """
         )
