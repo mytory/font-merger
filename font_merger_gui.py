@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import os
-import re
 import subprocess
 import sys
 
 from fontTools.ttLib import TTFont
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Signal, Qt
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QCheckBox,
     QDoubleSpinBox,
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QPlainTextEdit,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -42,28 +43,45 @@ def has_wght_axis(font_path):
         return False
 
 
-def parse_manual_scale_text(text, font_count):
-    """
-    Parse: '2=0.93, 3=1.05'
-    Returns ['--scale-font2=0.93', '--scale-font3=1.05']
-    """
-    if not text.strip():
-        return []
+class FontListWidget(QListWidget):
+    files_dropped = Signal(list)
 
-    args = []
-    pairs = [p.strip() for p in text.split(",") if p.strip()]
-    for pair in pairs:
-        m = re.match(r"^(\d+)\s*=\s*([0-9]*\.?[0-9]+)$", pair)
-        if not m:
-            raise ValueError("Manual scale format must be like '2=0.93,3=1.05'")
-        idx = int(m.group(1))
-        scale = float(m.group(2))
-        if idx < 2 or idx > font_count:
-            raise ValueError(f"manual scale index must be between 2 and {font_count}")
-        if scale <= 0:
-            raise ValueError("manual scale value must be > 0")
-        args.append(f"--scale-font{idx}={scale}")
-    return args
+    def __init__(self):
+        super().__init__()
+        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QAbstractItemView.InternalMove)
+        self.setDefaultDropAction(Qt.MoveAction)
+
+    def dragEnterEvent(self, event):
+        md = event.mimeData()
+        if md.hasUrls():
+            event.acceptProposedAction()
+            return
+        super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        md = event.mimeData()
+        if md.hasUrls():
+            event.acceptProposedAction()
+            return
+        super().dragMoveEvent(event)
+
+    def dropEvent(self, event):
+        md = event.mimeData()
+        if md.hasUrls():
+            paths = []
+            for url in md.urls():
+                if not url.isLocalFile():
+                    continue
+                path = os.path.abspath(url.toLocalFile())
+                if os.path.isfile(path) and path.lower().endswith((".ttf", ".otf", ".ttc", ".otc")):
+                    paths.append(path)
+            if paths:
+                self.files_dropped.emit(paths)
+                event.acceptProposedAction()
+                return
+        super().dropEvent(event)
 
 
 class MergeWorker(QThread):
@@ -106,10 +124,16 @@ class MainWindow(QMainWindow):
         root = QWidget()
         self.setCentralWidget(root)
         layout = QVBoxLayout(root)
+        self.manual_scale_values = {}
+        self.manual_scale_widgets = []
 
         font_box = QGroupBox("Fonts (priority: top > bottom)")
         font_layout = QHBoxLayout(font_box)
-        self.font_list = QListWidget()
+        self.font_list = FontListWidget()
+        self.font_list.setToolTip(
+            "Drag and drop font files here.\n"
+            "You can also drag items inside the list to reorder priority."
+        )
         font_layout.addWidget(self.font_list, 1)
 
         side_btns = QVBoxLayout()
@@ -137,13 +161,39 @@ class MainWindow(QMainWindow):
         self.weight_input.setDecimals(1)
         options_form.addRow("Weight (variable fonts)", self.weight_input)
 
-        self.auto_scale = QCheckBox("Auto scale non-first fonts")
+        self.auto_scale = QCheckBox("Auto scale non-first fonts (recommended)")
+        self.auto_scale.setChecked(True)
         options_form.addRow("", self.auto_scale)
 
-        self.manual_scale_input = QLineEdit()
-        self.manual_scale_input.setPlaceholderText("2=0.93,3=1.05")
-        options_form.addRow("Manual scale", self.manual_scale_input)
+        self.scale_help = QLabel(
+            "Scaling means matching visual glyph size between fonts.\n"
+            "Auto scale uses font #1 as baseline.\n"
+            "Manual per-font scale overrides auto scale for that font."
+        )
+        self.scale_help.setWordWrap(True)
+        options_form.addRow("Scale help", self.scale_help)
         layout.addWidget(options_box)
+
+        manual_box = QGroupBox("Manual Scale (per font)")
+        manual_outer = QVBoxLayout(manual_box)
+        manual_intro = QLabel("Set as: '<N>번 폰트는 1번 폰트의 [ ]% 크기'")
+        manual_intro.setWordWrap(True)
+        manual_outer.addWidget(manual_intro)
+
+        self.manual_scroll = QScrollArea()
+        self.manual_scroll.setWidgetResizable(True)
+        self.manual_scroll_content = QWidget()
+        self.manual_scroll_layout = QVBoxLayout(self.manual_scroll_content)
+        self.manual_scroll.setWidget(self.manual_scroll_content)
+        manual_outer.addWidget(self.manual_scroll)
+        layout.addWidget(manual_box)
+
+        self.auto_manual_hint = QLabel(
+            "Rule: Auto scale applies to all non-first fonts. "
+            "If manual scale is set for a font, manual scale wins for that font."
+        )
+        self.auto_manual_hint.setWordWrap(True)
+        layout.addWidget(self.auto_manual_hint)
 
         action_row = QHBoxLayout()
         self.variable_badge = QLabel("Variable font detected: no")
@@ -166,8 +216,10 @@ class MainWindow(QMainWindow):
         self.btn_down.clicked.connect(self.move_down)
         self.merge_button.clicked.connect(self.run_single)
         self.batch_button.clicked.connect(self.run_batch)
+        self.font_list.files_dropped.connect(self.add_fonts_from_paths)
         self.font_list.model().rowsInserted.connect(self.update_variable_ui)
         self.font_list.model().rowsRemoved.connect(self.update_variable_ui)
+        self.font_list.model().rowsMoved.connect(self.update_variable_ui)
         self.update_variable_ui()
 
     def log(self, message):
@@ -180,14 +232,23 @@ class MainWindow(QMainWindow):
             "",
             "Font Files (*.ttf *.otf *.ttc *.otc);;All Files (*)",
         )
+        self.add_fonts_from_paths(paths)
+
+    def add_fonts_from_paths(self, paths):
+        existing = set(self.font_paths())
         for p in paths:
-            if p:
-                self.font_list.addItem(os.path.abspath(p))
+            if not p:
+                continue
+            abs_path = os.path.abspath(p)
+            if abs_path in existing:
+                continue
+            self.font_list.addItem(abs_path)
+            existing.add(abs_path)
         self.update_variable_ui()
 
     def remove_selected(self):
-        row = self.font_list.currentRow()
-        if row >= 0:
+        rows = sorted({idx.row() for idx in self.font_list.selectedIndexes()}, reverse=True)
+        for row in rows:
             self.font_list.takeItem(row)
         self.update_variable_ui()
 
@@ -216,6 +277,60 @@ class MainWindow(QMainWindow):
         self.variable_badge.setText(f"Variable font detected: {'yes' if variable else 'no'}")
         self.weight_input.setVisible(variable)
         self.batch_button.setVisible(variable)
+        self.rebuild_manual_scale_inputs()
+
+    def rebuild_manual_scale_inputs(self):
+        # Keep existing manual values by font path.
+        for font_index, path, spin in self.manual_scale_widgets:
+            self.manual_scale_values[path] = spin.value()
+
+        while self.manual_scroll_layout.count():
+            item = self.manual_scroll_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+
+        self.manual_scale_widgets = []
+        fonts = self.font_paths()
+        if len(fonts) <= 1:
+            label = QLabel("Add at least two fonts to set per-font manual scale.")
+            self.manual_scroll_layout.addWidget(label)
+            self.manual_scroll_layout.addStretch(1)
+            return
+
+        for i in range(1, len(fonts)):
+            row = QWidget()
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+
+            label_left = QLabel(f"{i+1}번 폰트는 1번 폰트의")
+            spin = QDoubleSpinBox()
+            spin.setRange(10, 300)
+            spin.setDecimals(1)
+            spin.setSingleStep(1.0)
+            spin.setSuffix("%")
+            spin.setValue(self.manual_scale_values.get(fonts[i], 100.0))
+            label_right = QLabel("크기")
+
+            row_layout.addWidget(label_left)
+            row_layout.addWidget(spin)
+            row_layout.addWidget(label_right)
+            row_layout.addStretch(1)
+            self.manual_scroll_layout.addWidget(row)
+            self.manual_scale_widgets.append((i + 1, fonts[i], spin))
+
+        self.manual_scroll_layout.addStretch(1)
+
+    def manual_scale_args(self):
+        args = []
+        for font_index, path, spin in self.manual_scale_widgets:
+            value = spin.value()
+            self.manual_scale_values[path] = value
+            if abs(value - 100.0) < 1e-6:
+                continue
+            ratio = value / 100.0
+            args.append(f"--scale-font{font_index}={ratio}")
+        return args
 
     def build_base_args(self):
         fonts = self.font_paths()
@@ -235,7 +350,7 @@ class MainWindow(QMainWindow):
         if self.auto_scale.isChecked():
             args.append("--auto-scale")
 
-        args += parse_manual_scale_text(self.manual_scale_input.text(), len(fonts))
+        args += self.manual_scale_args()
         args += fonts
         return args, variable
 
