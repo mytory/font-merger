@@ -128,7 +128,11 @@ class MainWindow(QMainWindow):
         self.manual_scale_values = {}
         self.manual_scale_widgets = []
 
-        font_box = QGroupBox("Fonts (priority: top > bottom)")
+        font_title = QLabel("폰트 목록 (우선순위: 위에서 아래)")
+        font_title.setObjectName("sectionHeader")
+        layout.addWidget(font_title)
+
+        font_box = QGroupBox()
         font_layout = QHBoxLayout(font_box)
         self.font_list = FontListWidget()
         self.font_list.setToolTip(
