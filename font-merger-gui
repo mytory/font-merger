@@ -1,0 +1,10 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+if [ ! -d "$DIR/venv" ]; then
+    echo "Error: Virtual environment not found. Please run ./setup.sh first."
+    exit 1
+fi
+
+"$DIR/venv/bin/python3" "$DIR/font_merger_gui.py" "$@"

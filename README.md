@@ -17,6 +17,7 @@
 
 - `venv` 가상환경 생성
 - `fonttools` 설치
+- `PySide6` 설치 (GUI용)
 
 ## 사용법
 
@@ -29,6 +30,19 @@
 ```bash
 ./font-merger font1.ttf font2.ttf font3.ttf
 ```
+
+## GUI 사용법
+
+```bash
+./font-merger-gui
+```
+
+GUI 기능:
+
+- 폰트 파일 추가/삭제/순서 변경
+- 이름, weight, auto-scale, manual scale 입력
+- 1회 병합 실행
+- Variable 폰트가 포함된 경우에만 `Generate 100~900` 버튼 표시
 
 가변 폰트(Variable Font)가 하나라도 포함되면 `--weight`가 필수입니다.
 
@@ -76,3 +90,5 @@
 - `setup.sh`: 가상환경 및 의존성 설치
 - `font-merger`: 실행용 래퍼 스크립트
 - `_font_merger.py`: 병합 로직 본체
+- `font-merger-gui`: GUI 실행용 래퍼 스크립트
+- `font_merger_gui.py`: PySide6 GUI 앱
