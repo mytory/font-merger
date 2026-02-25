@@ -124,6 +124,7 @@ class MainWindow(QMainWindow):
         root = QWidget()
         self.setCentralWidget(root)
         layout = QVBoxLayout(root)
+        layout.setSpacing(10)
         self.manual_scale_values = {}
         self.manual_scale_widgets = []
 
@@ -149,34 +150,48 @@ class MainWindow(QMainWindow):
         font_layout.addLayout(side_btns)
         layout.addWidget(font_box)
 
-        options_box = QGroupBox("Options")
-        options_form = QFormLayout(options_box)
+        options_title = QLabel("옵션")
+        options_title.setObjectName("sectionHeader")
+        layout.addWidget(options_title)
+
+        options_box = QGroupBox()
+        options_outer = QVBoxLayout(options_box)
+        options_form = QFormLayout()
         self.name_input = QLineEdit()
-        self.name_input.setPlaceholderText("Optional base name")
-        options_form.addRow("Name", self.name_input)
+        self.name_input.setPlaceholderText("예: Pretendria")
+        options_form.addRow("폰트 이름", self.name_input)
 
         self.weight_input = QDoubleSpinBox()
         self.weight_input.setRange(1, 2000)
         self.weight_input.setValue(400)
         self.weight_input.setDecimals(1)
-        options_form.addRow("Weight (variable fonts)", self.weight_input)
+        options_form.addRow("두께(가변 폰트)", self.weight_input)
 
-        self.auto_scale = QCheckBox("Auto scale non-first fonts (recommended)")
+        self.auto_scale = QCheckBox("자동 크기 맞춤 사용 (권장)")
         self.auto_scale.setChecked(True)
-        options_form.addRow("", self.auto_scale)
+        options_form.addRow("크기 보정", self.auto_scale)
+        options_outer.addLayout(options_form)
 
         self.scale_help = QLabel(
-            "Scaling means matching visual glyph size between fonts.\n"
-            "Auto scale uses font #1 as baseline.\n"
-            "Manual per-font scale overrides auto scale for that font."
+            "크기 보정(스케일링)은 서로 다른 폰트를 섞을 때 글자가 너무 크거나 작아 보이는 문제를 줄입니다.\n"
+            "자동 크기 맞춤은 1번 폰트를 기준으로 나머지 폰트를 맞춥니다.\n"
+            "아래에서 폰트별 수동 %를 지정하면, 해당 폰트는 수동값이 우선 적용됩니다."
         )
         self.scale_help.setWordWrap(True)
-        options_form.addRow("Scale help", self.scale_help)
+        self.scale_help.setMinimumHeight(72)
+        options_outer.addWidget(self.scale_help)
         layout.addWidget(options_box)
 
-        manual_box = QGroupBox("Manual Scale (per font)")
+        manual_title = QLabel("폰트별 크기 미세 조정")
+        manual_title.setObjectName("sectionHeader")
+        layout.addWidget(manual_title)
+
+        manual_box = QGroupBox()
         manual_outer = QVBoxLayout(manual_box)
-        manual_intro = QLabel("Set as: '<N>번 폰트는 1번 폰트의 [ ]% 크기'")
+        manual_intro = QLabel(
+            "합치는 폰트의 글자 크기가 '자동 크기 맞춤 사용'에도 불구하고 "
+            "서로 많이 다를 때 직접 조정하기 위해 사용합니다."
+        )
         manual_intro.setWordWrap(True)
         manual_outer.addWidget(manual_intro)
 
@@ -189,17 +204,17 @@ class MainWindow(QMainWindow):
         layout.addWidget(manual_box)
 
         self.auto_manual_hint = QLabel(
-            "Rule: Auto scale applies to all non-first fonts. "
-            "If manual scale is set for a font, manual scale wins for that font."
+            "적용 규칙: 자동 크기 맞춤은 2번 이후 모든 폰트에 적용됩니다. "
+            "단, 특정 폰트에 수동 %를 지정하면 그 폰트는 수동값이 우선합니다."
         )
         self.auto_manual_hint.setWordWrap(True)
         layout.addWidget(self.auto_manual_hint)
 
         action_row = QHBoxLayout()
-        self.variable_badge = QLabel("Variable font detected: no")
-        self.batch_button = QPushButton("Generate 100~900")
+        self.variable_badge = QLabel("가변 폰트 감지: 아니오")
+        self.batch_button = QPushButton("100~900 일괄 생성")
         self.batch_button.setVisible(False)
-        self.merge_button = QPushButton("Merge Once")
+        self.merge_button = QPushButton("한 번 병합")
         action_row.addWidget(self.variable_badge)
         action_row.addStretch(1)
         action_row.addWidget(self.batch_button)
@@ -220,6 +235,16 @@ class MainWindow(QMainWindow):
         self.font_list.model().rowsInserted.connect(self.update_variable_ui)
         self.font_list.model().rowsRemoved.connect(self.update_variable_ui)
         self.font_list.model().rowsMoved.connect(self.update_variable_ui)
+        self.setStyleSheet(
+            """
+            QLabel#sectionHeader {
+                font-size: 15px;
+                font-weight: 700;
+                margin-top: 12px;
+                margin-bottom: 2px;
+            }
+            """
+        )
         self.update_variable_ui()
 
     def log(self, message):
@@ -274,7 +299,7 @@ class MainWindow(QMainWindow):
 
     def update_variable_ui(self):
         variable = self.has_variable_fonts()
-        self.variable_badge.setText(f"Variable font detected: {'yes' if variable else 'no'}")
+        self.variable_badge.setText(f"가변 폰트 감지: {'예' if variable else '아니오'}")
         self.weight_input.setVisible(variable)
         self.batch_button.setVisible(variable)
         self.rebuild_manual_scale_inputs()
@@ -293,7 +318,7 @@ class MainWindow(QMainWindow):
         self.manual_scale_widgets = []
         fonts = self.font_paths()
         if len(fonts) <= 1:
-            label = QLabel("Add at least two fonts to set per-font manual scale.")
+            label = QLabel("폰트를 2개 이상 추가하면 여기에서 폰트별 % 조정을 할 수 있습니다.")
             self.manual_scroll_layout.addWidget(label)
             self.manual_scroll_layout.addStretch(1)
             return
