@@ -43,6 +43,25 @@ def has_wght_axis(font_path):
         return False
 
 
+def get_font_family_name(font_path):
+    try:
+        font = TTFont(font_path)
+        try:
+            names = font["name"].names
+            for name_id in (4, 1):
+                for record in names:
+                    if record.nameID == name_id:
+                        try:
+                            return record.toUnicode()
+                        except Exception:
+                            continue
+        finally:
+            font.close()
+    except Exception:
+        pass
+    return os.path.splitext(os.path.basename(font_path))[0]
+
+
 class FontListWidget(QListWidget):
     files_dropped = Signal(list)
 
@@ -246,6 +265,7 @@ class MainWindow(QMainWindow):
         self.font_list.model().rowsInserted.connect(self.update_variable_ui)
         self.font_list.model().rowsRemoved.connect(self.update_variable_ui)
         self.font_list.model().rowsMoved.connect(self.update_variable_ui)
+        self.weight_input.valueChanged.connect(self.update_name_placeholder)
         self.setStyleSheet(
             """
             QLabel#sectionHeader {
@@ -311,12 +331,30 @@ class MainWindow(QMainWindow):
     def has_variable_fonts(self):
         return any(has_wght_axis(p) for p in self.font_paths())
 
+    def update_name_placeholder(self):
+        fonts = self.font_paths()
+        if not fonts:
+            self.name_input.setPlaceholderText("예: Pretendria")
+            return
+
+        base_name = get_font_family_name(fonts[0])
+        placeholder = f"예: {base_name} Centered Merged Font"
+        if self.has_variable_fonts():
+            weight = self.weight_input.value()
+            if float(weight).is_integer():
+                weight_text = str(int(weight))
+            else:
+                weight_text = f"{weight}".rstrip("0").rstrip(".")
+            placeholder += f" W{weight_text}"
+        self.name_input.setPlaceholderText(placeholder)
+
     def update_variable_ui(self):
         variable = self.has_variable_fonts()
         self.variable_badge.setText(f"가변 폰트 감지: {'예' if variable else '아니오'}")
         self.weight_label.setVisible(variable)
         self.weight_input.setVisible(variable)
         self.batch_button.setVisible(variable)
+        self.update_name_placeholder()
         self.rebuild_manual_scale_inputs()
 
     def rebuild_manual_scale_inputs(self):
