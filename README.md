@@ -37,6 +37,11 @@
 ./font-merger-gui
 ```
 
+아이콘:
+
+- 프로젝트 루트의 `icon.png`를 자동으로 읽어 창 아이콘으로 사용합니다.
+- 별도 실행 옵션은 필요 없습니다.
+
 GUI 기능:
 
 - 폰트 파일 다중 선택 추가
@@ -68,7 +73,17 @@ pip install pyinstaller
 
 ```bash
 # GUI 단일 실행파일
-pyinstaller --noconfirm --windowed --onefile --name font-merger-gui font_merger_gui.py
+pyinstaller --noconfirm --windowed --onefile \
+  --name font-merger-gui \
+  --icon icon.png \
+  --add-data "icon.png:." \
+  font_merger_gui.py
+```
+
+Windows(cmd.exe)에서는 `--add-data` 구분자로 `;`를 사용합니다.
+
+```bat
+pyinstaller --noconfirm --windowed --onefile --name font-merger-gui --icon icon.png --add-data "icon.png;." font_merger_gui.py
 ```
 
 빌드 결과:

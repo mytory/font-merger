@@ -5,6 +5,7 @@ import sys
 
 from fontTools.ttLib import TTFont
 from PySide6.QtCore import QThread, Signal, Qt, QSettings
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -60,6 +61,11 @@ def get_font_family_name(font_path):
     except Exception:
         pass
     return os.path.splitext(os.path.basename(font_path))[0]
+
+
+def resource_path(filename):
+    base = getattr(sys, "_MEIPASS", os.path.dirname(__file__))
+    return os.path.join(base, filename)
 
 
 class FontListWidget(QListWidget):
@@ -139,6 +145,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Font Merger GUI")
+        icon_path = resource_path("icon.png")
+        if os.path.isfile(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
         self.resize(980, 700)
         self.worker = None
         self.settings = QSettings("font-merger", "font-merger-gui")
