@@ -57,6 +57,30 @@ GUI 기능:
 - 출력 폴더를 선택하지 않고 병합을 누르면 폴더 선택 창이 먼저 열립니다.
 - 출력 폴더는 다음 실행에도 기억되며, 폴더가 사라진 경우 실행 시 자동으로 초기화됩니다.
 
+## 데스크톱 실행파일 빌드
+
+`PyInstaller`를 사용해 GUI 실행파일을 만들 수 있습니다.
+
+```bash
+source venv/bin/activate
+pip install pyinstaller
+```
+
+```bash
+# GUI 단일 실행파일
+pyinstaller --noconfirm --windowed --onefile --name font-merger-gui font_merger_gui.py
+```
+
+빌드 결과:
+
+- macOS/Linux: `dist/font-merger-gui`
+- Windows: `dist/font-merger-gui.exe`
+
+주의:
+
+- 각 OS 실행파일은 해당 OS에서 빌드해야 합니다.
+- 즉, macOS용은 macOS에서, Windows용은 Windows에서, Linux용은 Linux에서 빌드하세요.
+
 가변 폰트(Variable Font)가 하나라도 포함되면 `--weight`가 필수입니다.
 
 ```bash
