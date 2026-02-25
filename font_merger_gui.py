@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 from fontTools.ttLib import TTFont
-from PySide6.QtCore import QThread, Signal, Qt
+from PySide6.QtCore import QThread, Signal, Qt, QSettings
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -108,9 +108,10 @@ class MergeWorker(QThread):
     done = Signal()
     failed = Signal(str)
 
-    def __init__(self, commands):
+    def __init__(self, commands, workdir):
         super().__init__()
         self.commands = commands
+        self.workdir = workdir
 
     def run(self):
         try:
@@ -122,6 +123,7 @@ class MergeWorker(QThread):
                     stderr=subprocess.STDOUT,
                     text=True,
                     bufsize=1,
+                    cwd=self.workdir,
                 )
                 for line in proc.stdout:
                     self.log.emit(line.rstrip())
@@ -139,6 +141,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Font Merger GUI")
         self.resize(980, 700)
         self.worker = None
+        self.settings = QSettings("font-merger", "font-merger-gui")
+        self.output_dir = ""
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -186,6 +190,17 @@ class MainWindow(QMainWindow):
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("예: Pretendria")
         options_form.addRow("폰트 이름", self.name_input)
+
+        output_row = QWidget()
+        output_row_layout = QHBoxLayout(output_row)
+        output_row_layout.setContentsMargins(0, 0, 0, 0)
+        self.output_dir_input = QLineEdit()
+        self.output_dir_input.setReadOnly(True)
+        self.output_dir_input.setPlaceholderText("선택되지 않음")
+        self.select_output_btn = QPushButton("폴더 선택")
+        output_row_layout.addWidget(self.output_dir_input, 1)
+        output_row_layout.addWidget(self.select_output_btn)
+        options_form.addRow("출력 폴더", output_row)
 
         self.weight_input = QDoubleSpinBox()
         self.weight_input.setRange(1, 2000)
@@ -261,6 +276,7 @@ class MainWindow(QMainWindow):
         self.btn_down.clicked.connect(self.move_down)
         self.merge_button.clicked.connect(self.run_single)
         self.batch_button.clicked.connect(self.run_batch)
+        self.select_output_btn.clicked.connect(self.choose_output_dir)
         self.font_list.files_dropped.connect(self.add_fonts_from_paths)
         self.font_list.model().rowsInserted.connect(self.update_variable_ui)
         self.font_list.model().rowsRemoved.connect(self.update_variable_ui)
@@ -280,6 +296,7 @@ class MainWindow(QMainWindow):
             """
         )
         self.update_variable_ui()
+        self.load_output_dir()
 
     def log(self, message):
         self.log_view.appendPlainText(message)
@@ -330,6 +347,35 @@ class MainWindow(QMainWindow):
 
     def has_variable_fonts(self):
         return any(has_wght_axis(p) for p in self.font_paths())
+
+    def load_output_dir(self):
+        saved = self.settings.value("output_dir", "", str)
+        if saved and os.path.isdir(saved):
+            self.output_dir = saved
+        else:
+            # Saved path is missing or invalid; clear it immediately.
+            self.output_dir = ""
+            self.settings.setValue("output_dir", "")
+        self.output_dir_input.setText(self.output_dir)
+
+    def choose_output_dir(self):
+        start_dir = self.output_dir if self.output_dir else os.path.expanduser("~")
+        selected = QFileDialog.getExistingDirectory(self, "출력 폴더 선택", start_dir)
+        if not selected:
+            return False
+        self.output_dir = os.path.abspath(selected)
+        self.output_dir_input.setText(self.output_dir)
+        self.settings.setValue("output_dir", self.output_dir)
+        return True
+
+    def ensure_output_dir(self):
+        if self.output_dir and os.path.isdir(self.output_dir):
+            return True
+        # Path disappeared while app is open; clear and ask again.
+        self.output_dir = ""
+        self.output_dir_input.clear()
+        self.settings.setValue("output_dir", "")
+        return self.choose_output_dir()
 
     def update_name_placeholder(self):
         fonts = self.font_paths()
@@ -437,7 +483,7 @@ class MainWindow(QMainWindow):
         if self.worker and self.worker.isRunning():
             QMessageBox.warning(self, "Running", "A merge task is already running.")
             return
-        self.worker = MergeWorker(commands)
+        self.worker = MergeWorker(commands, self.output_dir)
         self.worker.log.connect(self.log)
         self.worker.done.connect(lambda: QMessageBox.information(self, "Done", "Completed successfully."))
         self.worker.failed.connect(lambda e: QMessageBox.critical(self, "Failed", e))
@@ -445,6 +491,8 @@ class MainWindow(QMainWindow):
 
     def run_single(self):
         try:
+            if not self.ensure_output_dir():
+                return
             args, _ = self.build_base_args()
             self.run_commands([args])
         except Exception as e:
@@ -452,6 +500,8 @@ class MainWindow(QMainWindow):
 
     def run_batch(self):
         try:
+            if not self.ensure_output_dir():
+                return
             base_args, variable = self.build_base_args()
             if not variable:
                 QMessageBox.warning(self, "Not available", "Batch generation is available only for variable fonts.")
