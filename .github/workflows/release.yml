@@ -23,9 +23,11 @@ jobs:
         include:
           - runner: macos-15
             arch: arm64
+            target_arch: arm64
             asset: font-merger-gui-macos-arm64
           - runner: macos-15-intel
             arch: x64
+            target_arch: x86_64
             asset: font-merger-gui-macos-x64
     runs-on: ${{ matrix.runner }}
     steps:
@@ -37,7 +39,7 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt pyinstaller==6.17.0
       - name: Build application bundle
         run: >-
-          pyinstaller --noconfirm --clean --windowed --target-architecture ${{ matrix.arch }}
+          pyinstaller --noconfirm --clean --windowed --target-architecture ${{ matrix.target_arch }}
           --name "Font Merger" --icon assets/icons/font-merger-mac.icns --add-data "icon.png:." font_merger_gui.py
       - name: Package release asset
         run: |
