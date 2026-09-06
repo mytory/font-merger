@@ -144,13 +144,13 @@ class MergeWorker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Font Merger GUI")
+        self.setWindowTitle("Mytory Font Merger")
         icon_path = resource_path("icon.png")
         if os.path.isfile(icon_path):
             self.setWindowIcon(QIcon(icon_path))
         self.resize(980, 700)
         self.worker = None
-        self.settings = QSettings("font-merger", "font-merger-gui")
+        self.settings = QSettings("mytory", "font-merger")
         self.output_dir = ""
 
         root = QWidget()

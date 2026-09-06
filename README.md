@@ -1,4 +1,4 @@
-# font-merger
+# Mytory Font Merger
 
 여러 폰트를 하나로 병합해 다국어 폰트를 만드는 CLI 도구입니다.
 
@@ -6,10 +6,10 @@
 
 [GitHub Releases](../../releases/latest)에서 운영체제에 맞는 GUI 파일을 내려받을 수 있습니다.
 
-- macOS (Apple Silicon): `font-merger-gui-macos-arm64.zip`을 압축 해제한 뒤 `Font Merger.app`을 응용 프로그램 폴더로 옮겨 실행합니다.
-- macOS (Intel): `font-merger-gui-macos-x64.zip`을 압축 해제한 뒤 `Font Merger.app`을 응용 프로그램 폴더로 옮겨 실행합니다.
-- Windows: `font-merger-gui-windows-x64.zip`을 압축 해제한 뒤 `font-merger-gui.exe`를 실행합니다.
-- Linux: `font-merger-gui-linux-x64.tar.gz`을 압축 해제한 뒤 `font-merger-gui/font-merger-gui`를 실행합니다.
+- macOS (Apple Silicon): `mytory-font-merger-macos-arm64.zip`을 압축 해제한 뒤 `Mytory Font Merger.app`을 응용 프로그램 폴더로 옮겨 실행합니다.
+- macOS (Intel): `mytory-font-merger-macos-x64.zip`을 압축 해제한 뒤 `Mytory Font Merger.app`을 응용 프로그램 폴더로 옮겨 실행합니다.
+- Windows: `mytory-font-merger-windows-x64.zip`을 압축 해제한 뒤 `mytory-font-merger.exe`를 실행합니다.
+- Linux: `mytory-font-merger-linux-x64.tar.gz`을 압축 해제한 뒤 `mytory-font-merger/mytory-font-merger`를 실행합니다.
 
 현재 배포물에는 코드 서명·공증이 적용되지 않았습니다. OS의 보안 경고가 나타날 수 있습니다.
 
@@ -87,25 +87,27 @@ source venv/bin/activate
 pip install pyinstaller==6.17.0
 ```
 
+macOS에서는 `Mytory Font Merger.app`으로 빌드합니다.
+
 ```bash
-# GUI 단일 실행파일
-pyinstaller --noconfirm --windowed --onefile \
-  --name font-merger-gui \
-  --icon icon.png \
+pyinstaller --noconfirm --windowed --onedir \
+  --name "Mytory Font Merger" \
+  --icon assets/icons/font-merger-mac.icns \
   --add-data "icon.png:." \
   font_merger_gui.py
 ```
 
-Windows(cmd.exe)에서는 `--add-data` 구분자로 `;`를 사용합니다.
+Windows(cmd.exe)에서는 `mytory-font-merger.exe`로 빌드합니다.
 
 ```bat
-pyinstaller --noconfirm --windowed --onefile --name font-merger-gui --icon icon.png --add-data "icon.png;." font_merger_gui.py
+pyinstaller --noconfirm --windowed --onedir --name mytory-font-merger --icon assets/icons/font-merger.ico --add-data "icon.png;." font_merger_gui.py
 ```
 
-빌드 결과:
+Linux에서는 `mytory-font-merger`로 빌드합니다.
 
-- macOS/Linux: `dist/font-merger-gui`
-- Windows: `dist/font-merger-gui.exe`
+```bash
+pyinstaller --noconfirm --windowed --onedir --name mytory-font-merger --add-data "icon.png:." font_merger_gui.py
+```
 
 주의:
 

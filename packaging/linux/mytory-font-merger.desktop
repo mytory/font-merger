@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=Font Merger
+Name=Mytory Font Merger
 Comment=Merge multiple fonts into one multilingual font
-Exec=font-merger-gui
-Icon=font-merger-gui
+Exec=mytory-font-merger
+Icon=mytory-font-merger
 Terminal=false
 Categories=Utility;Graphics;
