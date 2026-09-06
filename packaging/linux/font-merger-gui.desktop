@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Font Merger
+Comment=Merge multiple fonts into one multilingual font
+Exec=font-merger-gui
+Icon=font-merger-gui
+Terminal=false
+Categories=Utility;Graphics;

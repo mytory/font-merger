@@ -4,14 +4,30 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "GitHub Release tag to create or update"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
   build-macos:
-    name: Build macOS Universal
-    runs-on: macos-15-intel
+    name: Build macOS (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+            asset: font-merger-gui-macos-arm64
+          - runner: macos-15-intel
+            arch: x64
+            asset: font-merger-gui-macos-x64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,18 +37,18 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt pyinstaller==6.17.0
       - name: Build application bundle
         run: >-
-          pyinstaller --noconfirm --clean --windowed --target-architecture universal2
-          --name "Font Merger" --icon icon.png --add-data "icon.png:." font_merger_gui.py
+          pyinstaller --noconfirm --clean --windowed --target-architecture ${{ matrix.arch }}
+          --name "Font Merger" --icon assets/icons/font-merger-mac.icns --add-data "icon.png:." font_merger_gui.py
       - name: Package release asset
         run: |
-          mkdir -p release/font-merger-gui-macos-universal
-          mv "dist/Font Merger.app" release/font-merger-gui-macos-universal/
-          cp LICENSE THIRD_PARTY_NOTICES.md release/font-merger-gui-macos-universal/
-          ditto -c -k --sequesterRsrc --keepParent release/font-merger-gui-macos-universal font-merger-gui-macos-universal.zip
+          mkdir -p release/${{ matrix.asset }}
+          mv "dist/Font Merger.app" release/${{ matrix.asset }}/
+          cp LICENSE THIRD_PARTY_NOTICES.md release/${{ matrix.asset }}/
+          ditto -c -k --sequesterRsrc --keepParent release/${{ matrix.asset }} ${{ matrix.asset }}.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-universal
-          path: font-merger-gui-macos-universal.zip
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}.zip
 
   build-windows:
     name: Build Windows x64
@@ -46,7 +62,7 @@ jobs:
       - name: Install build dependencies
         run: python -m pip install --upgrade pip; python -m pip install -r requirements.txt pyinstaller==6.17.0
       - name: Build application
-        run: pyinstaller --noconfirm --clean --windowed --onedir --name font-merger-gui --icon icon.png --add-data "icon.png;." font_merger_gui.py
+        run: pyinstaller --noconfirm --clean --windowed --onedir --name font-merger-gui --icon assets/icons/font-merger.ico --add-data "icon.png;." font_merger_gui.py
       - name: Package release asset
         shell: pwsh
         run: |
@@ -70,12 +86,14 @@ jobs:
       - name: Install build dependencies
         run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt pyinstaller==6.17.0
       - name: Build application
-        run: pyinstaller --noconfirm --clean --windowed --onedir --name font-merger-gui --icon icon.png --add-data "icon.png:." font_merger_gui.py
+        run: pyinstaller --noconfirm --clean --windowed --onedir --name font-merger-gui --add-data "icon.png:." font_merger_gui.py
       - name: Package release asset
         run: |
           mkdir -p release/font-merger-gui-linux-x64
           mv dist/font-merger-gui release/font-merger-gui-linux-x64/
           cp LICENSE THIRD_PARTY_NOTICES.md release/font-merger-gui-linux-x64/
+          cp assets/icons/font-merger-linux.png release/font-merger-gui-linux-x64/font-merger-gui.png
+          cp packaging/linux/font-merger-gui.desktop release/font-merger-gui-linux-x64/
           tar -C release -czf font-merger-gui-linux-x64.tar.gz font-merger-gui-linux-x64
       - uses: actions/upload-artifact@v4
         with:
@@ -94,7 +112,8 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          gh release create "$GITHUB_REF_NAME" release-assets/* \
-            --title "Font Merger $GITHUB_REF_NAME" \
+          gh release create "$RELEASE_TAG" release-assets/* \
+            --title "Font Merger $RELEASE_TAG" \
             --generate-notes

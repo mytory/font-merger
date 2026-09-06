@@ -6,7 +6,8 @@
 
 [GitHub Releases](../../releases/latest)에서 운영체제에 맞는 GUI 파일을 내려받을 수 있습니다.
 
-- macOS: `font-merger-gui-macos-universal.zip`을 압축 해제한 뒤 `Font Merger.app`을 응용 프로그램 폴더로 옮겨 실행합니다.
+- macOS (Apple Silicon): `font-merger-gui-macos-arm64.zip`을 압축 해제한 뒤 `Font Merger.app`을 응용 프로그램 폴더로 옮겨 실행합니다.
+- macOS (Intel): `font-merger-gui-macos-x64.zip`을 압축 해제한 뒤 `Font Merger.app`을 응용 프로그램 폴더로 옮겨 실행합니다.
 - Windows: `font-merger-gui-windows-x64.zip`을 압축 해제한 뒤 `font-merger-gui.exe`를 실행합니다.
 - Linux: `font-merger-gui-linux-x64.tar.gz`을 압축 해제한 뒤 `font-merger-gui/font-merger-gui`를 실행합니다.
 
