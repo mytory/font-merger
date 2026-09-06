@@ -116,6 +116,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          gh release create "$RELEASE_TAG" release-assets/* \
+          gh release create "$RELEASE_TAG" release-assets/* --repo "$GITHUB_REPOSITORY" \
             --title "Font Merger $RELEASE_TAG" \
             --generate-notes
