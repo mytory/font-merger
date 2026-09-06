@@ -8,7 +8,7 @@
 
 압축을 풀면 나오는 `Mytory Font Merger.app` 파일을 우선 "응용 프로그램" 폴더로 옮기세요. 프로그램을 실행하면 아래처럼 보안 경고가 나옵니다(없애려면 비용을 내야 합니다). 휴지통으로 이동하지 말고 "완료"를 누르세요.
 
-<img width="372" height="429" alt="보안 경고와 함께 휴지통으로 이동, 완료 두 버튼이 떠 있는 이미지" src="https://github.com/user-attachments/assets/f6c83da0-85c5-4bbf-a23a-10939de0f147" />
+<img width="372" height="429" alt="보안 경고와 함께 휴지통으로 이동, 완료 두 버튼이 떠 있는 이미지" src="https://github.com/user-attachments/assets/e0c083b7-1057-4f8e-80ce-ac2f0bafdd6e" />
 
 이 경고를 없애기 위해 "터미널" 앱을 열고 아래 명령어를 복사해 붙여 넣고 엔터를 칩니다.
 
