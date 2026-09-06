@@ -107,6 +107,7 @@ jobs:
     needs: [build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: release-assets
@@ -118,4 +119,5 @@ jobs:
         run: |
           gh release create "$RELEASE_TAG" release-assets/* --repo "$GITHUB_REPOSITORY" \
             --title "Mytory Font Merger $RELEASE_TAG" \
+            --notes-file .github/release-notes.md \
             --generate-notes
