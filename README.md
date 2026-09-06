@@ -2,6 +2,21 @@
 
 여러 폰트를 하나로 병합해 다국어 폰트를 만드는 CLI 도구입니다.
 
+## GUI 다운로드
+
+[GitHub Releases](../../releases/latest)에서 운영체제에 맞는 GUI 파일을 내려받을 수 있습니다.
+
+- macOS: `font-merger-gui-macos-universal.zip`을 압축 해제한 뒤 `Font Merger.app`을 응용 프로그램 폴더로 옮겨 실행합니다.
+- Windows: `font-merger-gui-windows-x64.zip`을 압축 해제한 뒤 `font-merger-gui.exe`를 실행합니다.
+- Linux: `font-merger-gui-linux-x64.tar.gz`을 압축 해제한 뒤 `font-merger-gui/font-merger-gui`를 실행합니다.
+
+현재 배포물에는 코드 서명·공증이 적용되지 않았습니다. OS의 보안 경고가 나타날 수 있습니다.
+
+- macOS: 앱을 열 수 없다는 경고가 나오면 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**를 선택합니다.
+- Windows: SmartScreen 경고가 나오면 **추가 정보 → 실행**을 선택합니다.
+
+배포물에 포함된 외부 라이브러리 고지는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에서 확인할 수 있습니다.
+
 ## 요구사항
 
 - Python 3
@@ -68,7 +83,7 @@ GUI 기능:
 
 ```bash
 source venv/bin/activate
-pip install pyinstaller
+pip install pyinstaller==6.17.0
 ```
 
 ```bash
