@@ -1,12 +1,12 @@
 ## 윈도우에서 설치 방법
 
-아래에서 `mytory-font-merger-windows-x64.zip` 파일을 다운받아 압축을 풀고 설치 파일을 더블클릭하면 보안 경고를 하는 빨간 창이 뜹니다. "추가 정보"를 클릭하고 실행하면 설치됩니다.
+아래에서 `mytory-font-merger-windows-x64.zip` 파일을 다운받아 압축을 풀고 설치 파일을 더블클릭하면 보안 경고를 하는 빨간 창이 뜹니다(없애려면 비용을 내야 합니다). "추가 정보"를 클릭하고 실행하면 설치됩니다.
 
 ## 맥에서 설치 방법
 
 아래에서 `mytory-font-merger-macos-arm64.zip`(m1 이후 맥)이나 `mytory-font-merger-macos-x64.zip`(구 인텔 맥)을 다운받아 압축을 풉니다.
 
-압축을 풀면 나오는 `Mytory Font Merger.app` 파일을 우선 "응용 프로그램" 폴더로 옮기세요. 프로그램을 실행하면 아래처럼 경고가 나옵니다. 휴지통으로 이동하지 말고 "완료"를 누르세요.
+압축을 풀면 나오는 `Mytory Font Merger.app` 파일을 우선 "응용 프로그램" 폴더로 옮기세요. 프로그램을 실행하면 아래처럼 보안 경고가 나옵니다(없애려면 비용을 내야 합니다). 휴지통으로 이동하지 말고 "완료"를 누르세요.
 
 <img width="372" height="429" alt="보안 경고와 함께 휴지통으로 이동, 완료 두 버튼이 떠 있는 이미지" src="https://github.com/user-attachments/assets/f6c83da0-85c5-4bbf-a23a-10939de0f147" />
 
